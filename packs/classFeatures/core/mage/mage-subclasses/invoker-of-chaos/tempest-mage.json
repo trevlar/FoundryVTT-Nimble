@@ -6,7 +6,36 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "tempest-mage-cantrip",
+				"type": "selectSpell",
+				"label": "Wind Cantrip",
+				"spellType": "tiered",
+				"schoolSource": "specific",
+				"schools": [
+					"wind"
+				],
+				"maxTier": 0,
+				"baseChoiceCount": 1,
+				"levelProgression": {},
+				"chosenSpells": []
+			},
+			{
+				"id": "tempest-mage-tiered",
+				"type": "selectSpell",
+				"label": "Wind Tiered Spell",
+				"spellType": "tiered",
+				"schoolSource": "specific",
+				"schools": [
+					"wind"
+				],
+				"maxTier": 1,
+				"baseChoiceCount": 1,
+				"levelProgression": {},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +77,5 @@
 		"modifiedTime": 1761884022622,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "Cw4fwQZOWNHEUyjB"
+	"_id": "8zhYI2BlHhBZmzvh"
 }

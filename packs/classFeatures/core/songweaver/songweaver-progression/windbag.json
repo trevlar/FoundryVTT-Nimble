@@ -6,7 +6,23 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"level": 3,
+		"rules": [
+			{
+				"id": "windbag-utility-selection",
+				"type": "selectSpell",
+				"label": "Utility Spell Selection",
+				"spellType": "utility",
+				"schoolSource": "known",
+				"schools": [],
+				"maxTier": 9,
+				"baseChoiceCount": 2,
+				"levelProgression": {
+					"6": 2
+				},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +64,5 @@
 		"modifiedTime": 1761889276925,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "fg1cWHw1YLF2Mcc0"
+	"_id": "JJCvnF0qIMckKLgu"
 }

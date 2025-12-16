@@ -6,7 +6,17 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"level": null,
+		"rules": [
+			{
+				"id": "conduit-of-shadow-spells",
+				"type": "grantSpells",
+				"spellUuids": [
+					"Compendium.nimble.nimble-spells.Item.7Nh3iyR3VuDkIg4u",
+					"Compendium.nimble.nimble-spells.Item.ty3BiDxxgWI5IGu3"
+				]
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -33,7 +43,7 @@
 				"width": 1
 			}
 		},
-		"description": "<p>Your Patron grants you knowledge of:</p><p>@UUID[Compendium.nimble.nimble-spells.Item.9TNPdOXlCcGgxw6r]{Shadow Blast}</p><p>@UUID[Compendium.nimble.nimble-spells.Item.ho2KADcmQWWTeYR0]{Summon Shadow}</p>",
+		"description": "<p>Your Patron grants you knowledge of:</p><p>@UUID[Compendium.nimble.nimble-spells.Item.7Nh3iyR3VuDkIg4u]{Shadow Blast}</p><p>@UUID[Compendium.nimble.nimble-spells.Item.ty3BiDxxgWI5IGu3]{Summon Shadows}</p>",
 		"featureType": "class",
 		"class": "shadowmancer",
 		"group": "shadowmancer-progression"
@@ -48,5 +58,5 @@
 		"modifiedTime": 1761709209177,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "WXoGNl27TocLhXcK"
+	"_id": "ZxnnQZBrYTpox9OG"
 }

@@ -6,7 +6,32 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"level": 2,
+		"rules": [
+			{
+				"id": "shepherd-tiered-spells",
+				"type": "grantSpellSchool",
+				"label": "Tiered Spells",
+				"schoolSource": "specific",
+				"schools": [
+					"radiant",
+					"necrotic"
+				],
+				"baseTier": 1,
+				"tierProgression": {
+					"4": 2,
+					"6": 3,
+					"8": 4,
+					"10": 5,
+					"12": 6,
+					"14": 7,
+					"16": 8,
+					"18": 9
+				},
+				"utilityOnly": false,
+				"excludeUtility": true
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +73,5 @@
 		"modifiedTime": 1761714718845,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "keNIkcRhQZju0G7O"
+	"_id": "c2hy5pNhzXvLRdCa"
 }

@@ -6,7 +6,37 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"level": 2,
+		"rules": [
+			{
+				"type": "grantSpellSchool",
+				"disabled": false,
+				"id": "mage-tiered-spells",
+				"identifier": "mage-tiered-spells",
+				"label": "Elemental Tiered Spells",
+				"predicate": {},
+				"priority": 1,
+				"schools": [
+					"fire",
+					"ice",
+					"lightning"
+				],
+				"baseTier": 1,
+				"tierProgression": {
+					"2": 1,
+					"4": 2,
+					"6": 3,
+					"8": 4,
+					"10": 5,
+					"12": 6,
+					"14": 7,
+					"16": 8,
+					"18": 9
+				},
+				"utilityOnly": false,
+				"excludeUtility": true
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +78,5 @@
 		"modifiedTime": 1761538656813,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "vwK2lSHq2xi7woIU"
+	"_id": "q2S7X4vGZK3hicd8"
 }

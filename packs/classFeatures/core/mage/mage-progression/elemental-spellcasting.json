@@ -6,7 +6,26 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"type": "grantSpellSchool",
+				"disabled": false,
+				"id": "mage-elemental-cantrips",
+				"identifier": "mage-elemental-cantrips",
+				"label": "Elemental Cantrips",
+				"predicate": {},
+				"priority": 1,
+				"schools": [
+					"fire",
+					"ice",
+					"lightning"
+				],
+				"baseTier": 0,
+				"tierProgression": {},
+				"utilityOnly": false,
+				"excludeUtility": true
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +67,5 @@
 		"modifiedTime": 1761529952069,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "OjTkXa6W6xFvNYHr"
+	"_id": "liclW6t7Itq9gdsr"
 }

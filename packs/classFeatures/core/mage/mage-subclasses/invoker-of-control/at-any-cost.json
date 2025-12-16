@@ -6,7 +6,36 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "at-any-cost-cantrip",
+				"type": "selectSpell",
+				"label": "Necrotic Cantrip",
+				"spellType": "tiered",
+				"schoolSource": "specific",
+				"schools": [
+					"necrotic"
+				],
+				"maxTier": 0,
+				"baseChoiceCount": 1,
+				"levelProgression": {},
+				"chosenSpells": []
+			},
+			{
+				"id": "at-any-cost-tiered",
+				"type": "selectSpell",
+				"label": "Necrotic Tiered Spell",
+				"spellType": "tiered",
+				"schoolSource": "specific",
+				"schools": [
+					"necrotic"
+				],
+				"maxTier": 1,
+				"baseChoiceCount": 1,
+				"levelProgression": {},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +77,5 @@
 		"modifiedTime": 1761884006638,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "u8dmLxpkA4J5ZYzn"
+	"_id": "GzGkEEIYZJHhl3rw"
 }

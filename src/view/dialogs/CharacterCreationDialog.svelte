@@ -2,6 +2,7 @@
 	import { setContext } from 'svelte';
 	import getDeterministicBonus from '../../dice/getDeterministicBonus.js';
 	import generateBlankAttributeSet from '../../utils/generateBlankAttributeSet.js';
+	import getClassFeaturesByGroup from '../../utils/getClassFeaturesByGroup.js';
 	import scrollIntoView from '../../utils/scrollIntoView.js';
 
 	import AncestrySelection from './components/characterCreator/AncestrySelection.svelte';
@@ -10,6 +11,8 @@
 	import BonusLanguageSelection from './components/characterCreator/BonusLanguageSelection.svelte';
 	import ClassSelection from './components/characterCreator/ClassSelection.svelte';
 	import SkillPointAssignment from './components/characterCreator/SkillPointAssignment.svelte';
+	import SpellSchoolSelection from './components/characterCreator/SpellSchoolSelection.svelte';
+	import SpellSelection from './components/characterCreator/SpellSelection.svelte';
 	import StatArraySelection from './components/characterCreator/StatArraySelection.svelte';
 	import StatAssignment from './components/characterCreator/StatAssignment.svelte';
 
@@ -18,6 +21,8 @@
 		ANCESTRY: '1a',
 		ANCESTRY_SIZE: '1b',
 		BACKGROUND: 2,
+		SPELL_SCHOOLS: '2a',
+		SPELL_SELECTION: '2b',
 		ARRAY: 3,
 		STATS: 4,
 		SKILLS: 5,
@@ -89,8 +94,143 @@
 		return bonuses;
 	}
 
+	// Helper to get rules from a document - checks both the rules Map and system.rules array
+	function getRulesFromDocument(doc) {
+		console.log('[DEBUG] getRulesFromDocument for:', doc?.name);
+		console.log('[DEBUG] - doc.rules?.size:', doc?.rules?.size);
+		console.log('[DEBUG] - doc.system?.rules?.length:', doc?.system?.rules?.length);
+		console.log(
+			'[DEBUG] - doc._source?.system?.rules?.length:',
+			doc?._source?.system?.rules?.length,
+		);
+
+		// First try the rules Map (for fully prepared documents)
+		const rulesMap = doc?.rules;
+		if (rulesMap?.size > 0) {
+			console.log('[DEBUG] - Using rules Map');
+			return [...rulesMap.values()];
+		}
+		// Try system.rules array
+		if (doc?.system?.rules?.length > 0) {
+			console.log('[DEBUG] - Using system.rules');
+			return doc.system.rules;
+		}
+		// Fallback to _source.system.rules (raw source data)
+		if (doc?._source?.system?.rules?.length > 0) {
+			console.log('[DEBUG] - Using _source.system.rules');
+			return doc._source.system.rules;
+		}
+		return [];
+	}
+
+	function hasSpellSchoolSelections(characterClass, classFeatures) {
+		console.log('[DEBUG] hasSpellSchoolSelections - classFeatures count:', classFeatures?.length);
+
+		// Check class rules
+		const classRules = getRulesFromDocument(characterClass);
+		const classHasRules = classRules.some(
+			(rule) => rule.type === 'selectSpellSchool' && rule.choiceCount > 0,
+		);
+		if (classHasRules) {
+			console.log('[DEBUG] Found selectSpellSchool in class');
+			return true;
+		}
+
+		// Check class features
+		for (const feature of classFeatures) {
+			const featureRules = getRulesFromDocument(feature);
+			const featureHasRules = featureRules.some(
+				(rule) => rule.type === 'selectSpellSchool' && rule.choiceCount > 0,
+			);
+			if (featureHasRules) {
+				console.log('[DEBUG] Found selectSpellSchool in feature:', feature?.name);
+				return true;
+			}
+		}
+
+		console.log('[DEBUG] No selectSpellSchool rules found');
+		return false;
+	}
+
+	function areSpellSchoolSelectionsComplete(characterClass, classFeatures, spellSchoolSelections) {
+		// Check class rules
+		for (const rule of getRulesFromDocument(characterClass)) {
+			if (rule.type !== 'selectSpellSchool' || rule.choiceCount === 0) continue;
+			const selections = spellSchoolSelections[rule.id] ?? [];
+			if (selections.length < rule.choiceCount) return false;
+		}
+
+		// Check class features
+		for (const feature of classFeatures) {
+			for (const rule of getRulesFromDocument(feature)) {
+				if (rule.type !== 'selectSpellSchool' || rule.choiceCount === 0) continue;
+				const selections = spellSchoolSelections[rule.id] ?? [];
+				if (selections.length < rule.choiceCount) return false;
+			}
+		}
+
+		return true;
+	}
+
+	function hasSpellSelections(characterClass, classFeatures, background) {
+		console.log('[DEBUG] hasSpellSelections - background:', background?.name);
+
+		// Use helper to get rules from both Map and system.rules
+		const classRules = getRulesFromDocument(characterClass);
+		const bgRules = getRulesFromDocument(background);
+
+		// Check class and background rules
+		const hasClassOrBgRules = [...classRules, ...bgRules].some(
+			(rule) => rule.type === 'selectSpell' && rule.baseChoiceCount > 0,
+		);
+		if (hasClassOrBgRules) {
+			console.log('[DEBUG] Found selectSpell in class or background');
+			return true;
+		}
+
+		// Check class features
+		for (const feature of classFeatures) {
+			const featureRules = getRulesFromDocument(feature);
+			const featureHasRules = featureRules.some(
+				(rule) => rule.type === 'selectSpell' && rule.baseChoiceCount > 0,
+			);
+			if (featureHasRules) {
+				console.log('[DEBUG] Found selectSpell in feature:', feature?.name);
+				return true;
+			}
+		}
+
+		console.log('[DEBUG] No selectSpell rules found');
+		return false;
+	}
+
+	function areSpellSelectionsComplete(characterClass, classFeatures, background, spellSelections) {
+		// Use helper to get rules from both Map and system.rules
+		const classRules = getRulesFromDocument(characterClass);
+		const bgRules = getRulesFromDocument(background);
+
+		// Check class and background rules
+		for (const rule of [...classRules, ...bgRules]) {
+			if (rule.type !== 'selectSpell' || rule.baseChoiceCount === 0) continue;
+			const selections = spellSelections[rule.id] ?? [];
+			if (selections.length < rule.baseChoiceCount) return false;
+		}
+
+		// Check class features
+		for (const feature of classFeatures) {
+			for (const rule of getRulesFromDocument(feature)) {
+				if (rule.type !== 'selectSpell' || rule.baseChoiceCount === 0) continue;
+				const selections = spellSelections[rule.id] ?? [];
+				if (selections.length < rule.baseChoiceCount) return false;
+			}
+		}
+
+		return true;
+	}
+
 	function getCurrentStage(
 		selectedClass,
+		classFeatures,
 		selectedAncestry,
 		selectedAncestrySize,
 		selectedBackground,
@@ -98,7 +238,18 @@
 		selectedAbilityScores,
 		remainingSkillPoints,
 		bonusLanguages,
+		spellSchoolSelections,
+		spellSelections,
 	) {
+		console.log('[DEBUG] getCurrentStage called');
+		console.log('[DEBUG] - selectedClass:', selectedClass?.name);
+		console.log(
+			'[DEBUG] - classFeatures:',
+			classFeatures?.length,
+			classFeatures?.map((f) => f.name),
+		);
+		console.log('[DEBUG] - selectedBackground:', selectedBackground?.name);
+
 		const classOptionCount = classOptions.then((classes) => classes.length);
 
 		const ancestryCount = ancestryOptions
@@ -121,6 +272,39 @@
 			return CHARACTER_CREATION_STAGES.BACKGROUND;
 		}
 
+		// Check for spell school selections (e.g., Songweaver "Wind + 1 other")
+		// Comes after background since both class and background could grant spell options
+		console.log('[DEBUG] Checking spell school selections...');
+		const hasSchoolSelections = hasSpellSchoolSelections(selectedClass, classFeatures);
+		const schoolSelectionsComplete = areSpellSchoolSelectionsComplete(
+			selectedClass,
+			classFeatures,
+			spellSchoolSelections,
+		);
+		console.log('[DEBUG] - hasSchoolSelections:', hasSchoolSelections);
+		console.log('[DEBUG] - schoolSelectionsComplete:', schoolSelectionsComplete);
+		if (selectedClass && hasSchoolSelections && !schoolSelectionsComplete) {
+			console.log('[DEBUG] => Returning SPELL_SCHOOLS stage');
+			return CHARACTER_CREATION_STAGES.SPELL_SCHOOLS;
+		}
+
+		// Check for spell selections (class features like Elemental Mastery, or backgrounds like Academy Dropout)
+		console.log('[DEBUG] Checking spell selections...');
+		const hasSpellSel = hasSpellSelections(selectedClass, classFeatures, selectedBackground);
+		const spellSelComplete = areSpellSelectionsComplete(
+			selectedClass,
+			classFeatures,
+			selectedBackground,
+			spellSelections,
+		);
+		console.log('[DEBUG] - hasSpellSelections:', hasSpellSel);
+		console.log('[DEBUG] - spellSelectionsComplete:', spellSelComplete);
+		if (hasSpellSel && !spellSelComplete) {
+			console.log('[DEBUG] => Returning SPELL_SELECTION stage');
+			return CHARACTER_CREATION_STAGES.SPELL_SELECTION;
+		}
+
+		console.log('[DEBUG] => Proceeding past spell stages');
 		if (!selectedArray) return CHARACTER_CREATION_STAGES.ARRAY;
 
 		const hasUnassignedAbilityScores = Object.values(selectedAbilityScores).some(
@@ -164,6 +348,8 @@
 				return assignedPoints;
 			}, {}),
 			languages: ['common', ...bonusLanguages],
+			spellSchoolSelections,
+			spellSelections,
 		});
 	}
 
@@ -185,6 +371,52 @@
 	let selectedClass = $state('');
 	let selectedAncestry = $state('');
 	let selectedAncestrySize = $state('medium');
+	let spellSchoolSelections = $state({});
+	let spellSelections = $state({});
+	let classFeatures = $state([]);
+
+	// Load class features when class is selected
+	// Must read reactive values synchronously in effect body for proper tracking
+	$effect(() => {
+		// Capture selectedClass synchronously to establish the dependency
+		const currentClass = selectedClass;
+		console.log('[DEBUG] Class features effect triggered, currentClass:', currentClass?.name);
+
+		async function loadClassFeatures() {
+			if (!currentClass?.system?.groupIdentifiers?.length) {
+				console.log('[DEBUG] No groupIdentifiers on class, clearing features');
+				classFeatures = [];
+				return;
+			}
+
+			const groupIdentifiers = currentClass.system.groupIdentifiers;
+			console.log('[DEBUG] Loading features for groups:', groupIdentifiers);
+
+			const featureUuids = await getClassFeaturesByGroup(groupIdentifiers, null);
+			console.log('[DEBUG] Found feature UUIDs:', featureUuids.length, featureUuids);
+
+			const loadedFeatures = [];
+			for (const uuid of featureUuids) {
+				const feature = await fromUuid(uuid);
+				if (feature) {
+					console.log(
+						'[DEBUG] Loaded feature:',
+						feature.name,
+						'- rules.size:',
+						feature.rules?.size,
+						'- system.rules.length:',
+						feature.system?.rules?.length,
+					);
+					loadedFeatures.push(feature);
+				}
+			}
+
+			console.log('[DEBUG] Total loaded features:', loadedFeatures.length);
+			classFeatures = loadedFeatures;
+		}
+
+		loadClassFeatures();
+	});
 
 	let abilityBonuses = $derived(
 		getAbilityBonuses(selectedAncestry, selectedBackground, selectedClass),
@@ -199,6 +431,7 @@
 	let stage = $derived(
 		getCurrentStage(
 			selectedClass,
+			classFeatures,
 			selectedAncestry,
 			selectedAncestrySize,
 			selectedBackground,
@@ -206,6 +439,8 @@
 			selectedAbilityScores,
 			remainingSkillPoints,
 			bonusLanguages,
+			spellSchoolSelections,
+			spellSelections,
 		),
 	);
 
@@ -269,6 +504,22 @@
 			bind:selectedBackground
 		/>
 	{/await}
+
+	<SpellSchoolSelection
+		active={stage === CHARACTER_CREATION_STAGES.SPELL_SCHOOLS}
+		{selectedClass}
+		{classFeatures}
+		bind:spellSchoolSelections
+	/>
+
+	<SpellSelection
+		active={stage === CHARACTER_CREATION_STAGES.SPELL_SELECTION}
+		{selectedClass}
+		{classFeatures}
+		{selectedBackground}
+		{spellSchoolSelections}
+		bind:spellSelections
+	/>
 
 	<StatArraySelection
 		active={stage === CHARACTER_CREATION_STAGES.ARRAY}

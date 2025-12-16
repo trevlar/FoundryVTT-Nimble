@@ -6,7 +6,25 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"level": 7,
+		"rules": [
+			{
+				"id": "master-radiance-utility",
+				"type": "selectSpell",
+				"label": "Radiant Utility Spells",
+				"spellType": "utility",
+				"schoolSource": "specific",
+				"schools": [
+					"radiant"
+				],
+				"maxTier": 9,
+				"baseChoiceCount": 1,
+				"levelProgression": {
+					"11": 1
+				},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +66,5 @@
 		"modifiedTime": 1761625719480,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "3WWbCoU7dHAfaDNy"
+	"_id": "qZfhGOfTrjFhe3Tn"
 }

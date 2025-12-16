@@ -36,7 +36,8 @@
 		"description": "<p>Gain advantage on Arcana or Lore checks when you have access to a large amount of books and time to study them.</p>",
 		"featureType": "class",
 		"class": "mage",
-		"group": "mage-progression"
+		"group": "mage-progression",
+		"level": 2
 	},
 	"effects": [],
 	"flags": {},
@@ -48,5 +49,5 @@
 		"modifiedTime": 1761538269667,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "WN4gldrDqbvGcNOl"
+	"_id": "Y3FW6AUM4yPOwtZe"
 }

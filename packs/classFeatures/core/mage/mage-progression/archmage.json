@@ -36,7 +36,8 @@
 		"description": "<p>+1 to any 2 of your stats. The first tiered spell you cast each encounter costs 1 action less and 5 fewer mana.</p>",
 		"featureType": "class",
 		"class": "mage",
-		"group": "mage-progression"
+		"group": "mage-progression",
+		"level": 20
 	},
 	"effects": [],
 	"flags": {},
@@ -48,5 +49,5 @@
 		"modifiedTime": 1761538528894,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "BTDicAEAllu2bkVj"
+	"_id": "U22z90rrpxxEcwjo"
 }

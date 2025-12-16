@@ -311,6 +311,24 @@ const characterSchema = () => ({
 			}),
 		}),
 	}),
+	spellAccess: new fields.SchemaField({
+		schools: new RecordField(
+			new fields.StringField({ required: true, initial: '', nullable: false }),
+			new fields.NumberField({ required: true, initial: 0, nullable: false, integer: true }),
+		),
+		schoolChoices: new RecordField(
+			new fields.StringField({ required: true, initial: '', nullable: false }),
+			new fields.ArrayField(
+				new fields.StringField({ required: true, initial: '', nullable: false }),
+			),
+		),
+		spellChoices: new RecordField(
+			new fields.StringField({ required: true, initial: '', nullable: false }),
+			new fields.ArrayField(
+				new fields.StringField({ required: true, initial: '', nullable: false }),
+			),
+		),
+	}),
 	levelUpHistory: new fields.ArrayField(
 		new fields.SchemaField({
 			level: new fields.NumberField({
@@ -343,6 +361,24 @@ const characterSchema = () => ({
 				initial: '',
 				nullable: false,
 			}),
+			/**
+			 * Spell UUIDs (compendium UUIDs) that were created on the actor during this level up.
+			 * Used to reliably revert auto-granted and player-chosen spells.
+			 */
+			spellUuidsGranted: new fields.ArrayField(
+				new fields.StringField({ required: true, nullable: false, initial: '' }),
+				{ required: true, nullable: false, initial: () => [] },
+			),
+			/**
+			 * For selectSpell rules, track exactly which UUIDs were chosen for each rule id
+			 * during this level up so we can remove them from the rule on revert.
+			 */
+			spellChoicesByRule: new RecordField(
+				new fields.StringField({ required: true, initial: '', nullable: false }),
+				new fields.ArrayField(
+					new fields.StringField({ required: true, initial: '', nullable: false }),
+				),
+			),
 		}),
 		{ required: true, nullable: false, initial: () => [] },
 	),

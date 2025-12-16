@@ -140,17 +140,13 @@ export default class IdBuilder {
 	 * @returns {string}
 	 */
 	static getIdKey(absoluteFilePath) {
-		let filePath = absoluteFilePath;
+		const dirName = fileURLToPath(new URL('.', import.meta.url));
+		const dataPath = path.resolve(dirName, '../../packs');
 
-		if (os.platform() === 'linux') {
-			const dirName = fileURLToPath(new URL('.', import.meta.url));
-			const dataPath = path.resolve(dirName, '../../packs');
-
-			filePath = path.relative(dataPath, absoluteFilePath);
-		}
+		// Convert to relative path from packs directory
+		const filePath = path.relative(dataPath, absoluteFilePath);
 
 		const parts = filePath.split(path.sep);
-		if (os.platform() === 'win32') parts.shift();
 		parts.push(parts.pop().replace('.json', ''));
 
 		return parts.join('.');

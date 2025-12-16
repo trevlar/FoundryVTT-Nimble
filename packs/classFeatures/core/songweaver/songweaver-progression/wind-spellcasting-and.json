@@ -6,7 +6,34 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "songweaver-spell-school-selection",
+				"type": "selectSpellSchool",
+				"label": "Songweaver Spell Schools",
+				"fixedSchools": [
+					"wind"
+				],
+				"choiceCount": 1,
+				"choiceOptions": [
+					"fire",
+					"ice",
+					"lightning",
+					"radiant",
+					"necrotic"
+				],
+				"baseTier": 0,
+				"excludeUtility": true,
+				"chosenSchools": []
+			},
+			{
+				"id": "songweaver-spells",
+				"type": "grantSpells",
+				"spellUuids": [
+					"Compendium.nimble.nimble-spells.Item.GLwouMvsh3i5k8wF"
+				]
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +75,5 @@
 		"modifiedTime": 1761887543569,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "4jKHYa0ZPYXjliJo"
+	"_id": "dViXHuAsD2PyrMw8"
 }

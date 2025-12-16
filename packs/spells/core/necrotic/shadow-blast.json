@@ -93,6 +93,9 @@
 				"range"
 			]
 		},
+		"restrictedClasses": [
+			"shadowmancer"
+		],
 		"school": "necrotic",
 		"tier": 0
 	},
@@ -106,5 +109,5 @@
 		"modifiedTime": 1762391246179,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "9TNPdOXlCcGgxw6r"
+	"_id": "7Nh3iyR3VuDkIg4u"
 }

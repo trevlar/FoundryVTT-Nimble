@@ -17,6 +17,16 @@ const schema = () => ({
 			options: ['concentration', 'range', 'reach', 'utilitySpell'],
 		}),
 	}),
+	/**
+	 * If non-empty, this spell is restricted and should only be selectable/granted
+	 * to characters that have at least one of these class identifiers.
+	 *
+	 * Example: ["shepherd"]
+	 */
+	restrictedClasses: new fields.ArrayField(
+		new fields.StringField({ required: true, initial: '', nullable: false }),
+		{ required: true, nullable: false, initial: [] },
+	),
 	school: new fields.StringField({ required: true, initial: '', nullable: false }),
 	tier: new fields.NumberField({
 		required: true,

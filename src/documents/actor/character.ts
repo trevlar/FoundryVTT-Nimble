@@ -6,6 +6,8 @@ import { HitDiceManager } from '../../managers/HitDiceManager.js';
 import { RestManager } from '../../managers/RestManager.js';
 import type { NimbleCharacterData } from '../../models/actor/CharacterDataModel.js';
 import calculateRollMode from '../../utils/calculateRollMode.js';
+import getClassFeaturesByGroup from '../../utils/getClassFeaturesByGroup.js';
+import getNewSpellsForLevelUp from '../../utils/getNewSpellsForLevelUp.js';
 import getRollFormula from '../../utils/getRollFormula.js';
 import CharacterArmorProficienciesConfigDialog from '../../view/dialogs/CharacterArmorProficienciesConfigDialog.svelte';
 import CharacterLanguageProficienciesConfigDialog from '../../view/dialogs/CharacterLanguageProficienciesConfigDialog.svelte';
@@ -645,6 +647,10 @@ export class NimbleCharacter extends NimbleBaseActor {
 			}
 		});
 
+		// Apply class + actor updates first so subsequent grants use the new level.
+		await this.updateItem(characterClass.id!, itemUpdates);
+		await this.update(actorUpdates);
+
 		// Add selected subclass if available
 		const subclass = dialogData.selectedSubclass as NimbleSubclassItem;
 
@@ -663,7 +669,116 @@ export class NimbleCharacter extends NimbleBaseActor {
 			}
 		}
 
-		// Record level up history
+		// Auto-grant class features up to the new level (based on the class' groupIdentifiers)
+		const groupIdentifiers = characterClass.system.groupIdentifiers ?? [];
+		if (Array.isArray(groupIdentifiers) && groupIdentifiers.length > 0) {
+			const featureUuids = await getClassFeaturesByGroup(groupIdentifiers, nextClassLevel);
+
+			const existingFeatureSources = new Set<string>();
+			for (const item of this.items) {
+				const source = item._stats?.compendiumSource ?? item.flags?.core?.sourceId;
+				if (typeof source === 'string' && source.length > 0) existingFeatureSources.add(source);
+			}
+
+			const featuresToCreate: Item.Source[] = [];
+
+			for (const featureUuid of featureUuids) {
+				if (existingFeatureSources.has(featureUuid)) continue;
+
+				const featureDoc = await fromUuid(featureUuid);
+				// Only embed Item documents
+				if (!(featureDoc instanceof Item)) continue;
+
+				const featureData = featureDoc.toObject();
+				featureData._stats.compendiumSource = featureUuid;
+				featuresToCreate.push(featureData);
+			}
+
+			if (featuresToCreate.length > 0) {
+				await this.createEmbeddedDocuments('Item', featuresToCreate);
+			}
+		}
+
+		// Track spells created during this level-up so we can reliably revert them later
+		const spellUuidsGranted = new Set<string>();
+		const spellChoicesByRule: Record<string, string[]> = {};
+		const seenSpellUuidsToCreate = new Set<string>();
+
+		// Handle auto-granted spells from grantSpellSchool rules
+		const autoGrantedSpells = await getNewSpellsForLevelUp(this, nextClassLevel, {
+			currentLevel: currentClassLevel,
+		});
+		const spellItemsToCreate: Item.Source[] = [];
+
+		for (const spellGroup of autoGrantedSpells) {
+			for (const spell of spellGroup.spells) {
+				spellUuidsGranted.add(spell.uuid);
+				if (seenSpellUuidsToCreate.has(spell.uuid)) continue;
+				seenSpellUuidsToCreate.add(spell.uuid);
+				// Get the spell document from the compendium
+				const spellDoc = await fromUuid(spell.uuid);
+				if (spellDoc instanceof Item) {
+					const spellData = spellDoc.toObject();
+					spellData._stats.compendiumSource = spell.uuid;
+					spellItemsToCreate.push(spellData);
+				}
+			}
+		}
+
+		// Handle selected spells from selectSpell rules
+		const spellChoiceSelections = dialogData.spellChoiceSelections ?? {};
+
+		for (const [ruleId, selections] of Object.entries(spellChoiceSelections)) {
+			if (!Array.isArray(selections)) continue;
+
+			const chosenUuids = selections
+				.map((s) =>
+					s && typeof s === 'object' && 'uuid' in s ? (s as { uuid?: unknown }).uuid : null,
+				)
+				.filter((u): u is string => typeof u === 'string' && u.length > 0);
+
+			if (chosenUuids.length > 0) {
+				spellChoicesByRule[ruleId] = chosenUuids;
+				for (const uuid of chosenUuids) spellUuidsGranted.add(uuid);
+			}
+
+			for (const spell of selections) {
+				// Get the spell document from the compendium
+				if (!spell || typeof spell !== 'object' || !('uuid' in spell)) continue;
+				const uuid = (spell as { uuid?: unknown }).uuid;
+				if (typeof uuid !== 'string' || uuid.length === 0) continue;
+				if (seenSpellUuidsToCreate.has(uuid)) continue;
+				seenSpellUuidsToCreate.add(uuid);
+
+				const spellDoc = await fromUuid(uuid);
+				if (spellDoc instanceof Item) {
+					const spellData = spellDoc.toObject();
+					spellData._stats.compendiumSource = uuid;
+					spellItemsToCreate.push(spellData);
+				}
+			}
+
+			// Update the selectSpell rule with the chosen spell UUIDs
+			// Find the item with this rule and update it
+			for (const item of this.items) {
+				const rules = item.system?.rules ?? [];
+				const ruleIndex = rules.findIndex((r) => r.id === ruleId);
+				if (ruleIndex !== -1) {
+					const existingChosen = rules[ruleIndex].chosenSpells ?? [];
+					await this.updateItem(item.id!, {
+						[`system.rules.${ruleIndex}.chosenSpells`]: [...existingChosen, ...chosenUuids],
+					});
+					break;
+				}
+			}
+		}
+
+		// Create all spell items at once
+		if (spellItemsToCreate.length > 0) {
+			await this.createEmbeddedDocuments('Item', spellItemsToCreate);
+		}
+
+		// Record level up history (after all grants/selections so revert can undo them)
 		const historyEntry = {
 			level: nextClassLevel,
 			hpIncrease: hp,
@@ -671,12 +786,11 @@ export class NimbleCharacter extends NimbleBaseActor {
 			skillIncreases: dialogData.skillPointChanges,
 			hitDieAdded: true,
 			classIdentifier: characterClass.identifier,
+			spellUuidsGranted: Array.from(spellUuidsGranted),
+			spellChoicesByRule,
 		};
 
-		actorUpdates['system.levelUpHistory'] = [...this.system.levelUpHistory, historyEntry];
-
-		await this.updateItem(characterClass.id!, itemUpdates);
-		await this.update(actorUpdates);
+		await this.update({ 'system.levelUpHistory': [...this.system.levelUpHistory, historyEntry] });
 		this.sheet?.render(true);
 	}
 
@@ -688,8 +802,52 @@ export class NimbleCharacter extends NimbleBaseActor {
 
 		if (!characterClass) return;
 
-		const actorUpdates: Record<string, any> = {};
-		const itemUpdates: Record<string, any> = {};
+		const actorUpdates: Record<string, unknown> = {};
+		const itemUpdates: Record<string, unknown> = {};
+
+		// Remove spells that were granted/selected during the reverted level
+		const spellUuidsGranted = new Set<string>(lastHistory.spellUuidsGranted ?? []);
+
+		if (spellUuidsGranted.size > 0) {
+			const spellIdsToDelete = this.items
+				.filter((i) => i.type === 'spell')
+				.map((i) => {
+					const source = i._stats?.compendiumSource ?? i.flags?.core?.sourceId;
+					const sourceId = typeof source === 'string' && source.length > 0 ? source : null;
+					return sourceId && spellUuidsGranted.has(sourceId) ? i.id : null;
+				})
+				.filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+			if (spellIdsToDelete.length > 0) {
+				await this.deleteEmbeddedDocuments('Item', spellIdsToDelete);
+			}
+		}
+
+		// Roll back selectSpell rule chosenSpells for spells chosen during the reverted level
+		const choicesByRule = lastHistory.spellChoicesByRule ?? {};
+		for (const [ruleId, chosenUuids] of Object.entries(choicesByRule)) {
+			if (!Array.isArray(chosenUuids) || chosenUuids.length === 0) continue;
+			const removeSet = new Set(chosenUuids.filter((u) => typeof u === 'string' && u.length > 0));
+			if (removeSet.size === 0) continue;
+
+			for (const item of this.items) {
+				const rules = item.system?.rules ?? [];
+				const ruleIndex = rules.findIndex((r) => r.id === ruleId);
+				if (ruleIndex === -1) continue;
+
+				const existingChosen: unknown = rules[ruleIndex].chosenSpells ?? [];
+				const existingList = Array.isArray(existingChosen)
+					? existingChosen.filter((u): u is string => typeof u === 'string' && u.length > 0)
+					: [];
+
+				const nextList = existingList.filter((u) => !removeSet.has(u));
+
+				await this.updateItem(item.id!, {
+					[`system.rules.${ruleIndex}.chosenSpells`]: nextList,
+				});
+				break;
+			}
+		}
 
 		// Revert HP
 		actorUpdates['system.attributes.hp.value'] =

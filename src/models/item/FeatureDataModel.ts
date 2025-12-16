@@ -8,6 +8,7 @@ const schema = () => ({
 	featureType: new fields.StringField({ required: true, nullable: false, initial: 'class' }),
 	class: new fields.StringField({ required: true, nullable: false, initial: '' }),
 	group: new fields.StringField({ required: true, nullable: false, initial: '' }),
+	level: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 });
 
 declare namespace NimbleFeatureData {

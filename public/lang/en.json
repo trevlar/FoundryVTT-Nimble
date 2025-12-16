@@ -372,11 +372,15 @@
 			"armorClass": "Armor Class",
 			"grantItem": "Item",
 			"grantProficiency": "Proficiency",
+			"grantSpells": "Specific Spells",
+			"grantSpellSchool": "Spell School",
 			"initiativeBonus": "Initiative Bonus",
 			"maxHitDice": "Hit Dice",
 			"maxHpBonus": "Hit Points",
 			"maxWounds": "Wounds",
 			"note": "Note",
+			"selectSpell": "Spell Choice",
+			"selectSpellSchool": "School Choice",
 			"skillBonus": "Skill Bonus"
 		},
 		"creatureFeatures": {

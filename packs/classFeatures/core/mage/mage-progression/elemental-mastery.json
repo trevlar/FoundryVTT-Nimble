@@ -6,7 +6,23 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "elemental-mastery-utility",
+				"type": "selectSpell",
+				"label": "Elemental Mastery - Utility Spells",
+				"spellType": "utility",
+				"schoolSource": "known",
+				"schools": [],
+				"maxTier": 9,
+				"baseChoiceCount": 3,
+				"levelProgression": {
+					"6": 3,
+					"14": 3
+				},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -36,7 +52,8 @@
 		"description": "<p>Learn the Utility Spells from 1 spell school you know.</p><hr><p>Level 6: +1 School</p><p>Level 14: +1 School</p>",
 		"featureType": "class",
 		"class": "mage",
-		"group": "mage-progression"
+		"group": "mage-progression",
+		"level": 3
 	},
 	"effects": [],
 	"flags": {},
@@ -48,5 +65,5 @@
 		"modifiedTime": 1761538714028,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "qVQ5kPYIP7FEhdI4"
+	"_id": "gSg2iiZV6uHITvrs"
 }

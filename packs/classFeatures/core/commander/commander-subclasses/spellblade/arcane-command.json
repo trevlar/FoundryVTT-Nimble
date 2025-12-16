@@ -6,7 +6,20 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "arcane-command-spell",
+				"type": "selectSpell",
+				"label": "Arcane Spell",
+				"spellType": "tiered",
+				"schoolSource": "any",
+				"schools": [],
+				"maxTier": 1,
+				"baseChoiceCount": 1,
+				"levelProgression": {},
+				"chosenSpells": []
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +61,5 @@
 		"modifiedTime": 1762148974770,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "9luWc0bBrCMNjswr"
+	"_id": "XhlKwPSz3jTbvef4"
 }

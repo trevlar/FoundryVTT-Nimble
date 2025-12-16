@@ -99,6 +99,9 @@
 				"range"
 			]
 		},
+		"restrictedClasses": [
+			"songweaver"
+		],
 		"school": "wind",
 		"tier": 0
 	},
@@ -113,5 +116,5 @@
 		"modifiedTime": 1762395259465,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "kTJSEElZSzeOMXBO"
+	"_id": "GLwouMvsh3i5k8wF"
 }

@@ -1,19 +1,64 @@
 import type { DeepPartial } from '@league-of-foundry-developers/foundry-vtt-types/src/types/utils.d.mts';
 import { SvelteApplicationMixin } from '#lib/SvelteApplicationMixin.svelte.js';
 import getChoicesFromCompendium from '../../utils/getChoicesFromCompendium.js';
+import getClassFeaturesByGroup from '../../utils/getClassFeaturesByGroup.js';
 import sortDocumentsByName from '../../utils/sortDocumentsByName.js';
 import CharacterCreationDialogComponent from '../../view/dialogs/CharacterCreationDialog.svelte';
+import type { NimbleCharacter } from '../actor/character.js';
 
 const { ApplicationV2 } = foundry.applications.api;
 
+type Scalar = string | number | boolean | null | undefined;
+type DialogData = Record<string, Scalar | object>;
+
+type SpellSelection = { uuid: string; name: string };
+type SpellSelectionsByRuleId = Record<string, SpellSelection[]>;
+type SpellSchoolSelectionsByRuleId = Record<string, string[]>;
+
+type OriginSelection = { uuid: string } | '' | null | undefined;
+
+function getUuidFromSelection(selection: OriginSelection): string | null {
+	if (!selection) return null;
+	if (typeof selection === 'string') return null;
+	if (!('uuid' in selection)) return null;
+	const uuid = selection.uuid;
+	return typeof uuid === 'string' && uuid.length > 0 ? uuid : null;
+}
+
+interface CharacterCreationSubmitResults {
+	name?: string;
+	origins?: {
+		background?: OriginSelection;
+		characterClass?: OriginSelection;
+		ancestry?: OriginSelection;
+	};
+	abilityScores?: Record<string, number>;
+	sizeCategory: string;
+	skills?: Record<string, number>;
+	languages: string[];
+	spellSchoolSelections: SpellSchoolSelectionsByRuleId;
+	spellSelections: SpellSelectionsByRuleId;
+}
+
 export default class CharacterCreationDialog extends SvelteApplicationMixin(ApplicationV2) {
-	data: Record<string, any>;
-	parent: any;
-	pack: any;
+	data: DialogData;
+	parent: object | null;
+	pack: object | null;
 
-	protected root;
+	protected root: typeof CharacterCreationDialogComponent;
 
-	constructor(data = {}, { parent = null, pack = null, ...options } = {}) {
+	constructor(
+		data: DialogData = {},
+		{
+			parent = null,
+			pack = null,
+			...options
+		}: {
+			parent?: object | null;
+			pack?: object | null;
+			[key: string]: Scalar | object;
+		} = {},
+	) {
 		const width = 608;
 		super(
 			foundry.utils.mergeObject(options, {
@@ -62,35 +107,65 @@ export default class CharacterCreationDialog extends SvelteApplicationMixin(Appl
 		};
 	}
 
-	async submit(results) {
-		const actor = await Actor.create(
+	async submit(results: CharacterCreationSubmitResults) {
+		const actor = (await Actor.create(
 			{ name: results.name || 'New Character', type: 'character' },
 			{ renderSheet: true },
-		);
+		)) as NimbleCharacter | null;
 
 		const { background, characterClass, ancestry } = results?.origins ?? {};
 		const originDocuments: NimbleBaseItem[] = [];
 
-		const backgroundDocument = (await fromUuid(background?.uuid)) as NimbleBackgroundItem | null;
-		const classDocument = (await fromUuid(characterClass?.uuid)) as NimbleClassItem | null;
-		const ancestryDocument = (await fromUuid(ancestry?.uuid)) as NimbleAncestryItem | null;
+		const backgroundUuid = getUuidFromSelection(background);
+		const classUuid = getUuidFromSelection(characterClass);
+		const ancestryUuid = getUuidFromSelection(ancestry);
+
+		const backgroundDocument = backgroundUuid
+			? ((await fromUuid(backgroundUuid)) as NimbleBackgroundItem | null)
+			: null;
+		const classDocument = classUuid
+			? ((await fromUuid(classUuid)) as NimbleClassItem | null)
+			: null;
+		const ancestryDocument = ancestryUuid
+			? ((await fromUuid(ancestryUuid)) as NimbleAncestryItem | null)
+			: null;
 
 		if (backgroundDocument) {
-			backgroundDocument._stats.compendiumSource = background.uuid;
+			backgroundDocument._stats.compendiumSource = backgroundUuid;
 			originDocuments.push(backgroundDocument);
 		}
 
 		if (classDocument) {
-			classDocument._stats.compendiumSource = characterClass.uuid;
+			classDocument._stats.compendiumSource = classUuid;
 			originDocuments.push(classDocument);
+
+			// Get and add class features based on groupIdentifiers
+			const groupIdentifiers = classDocument.system.groupIdentifiers ?? [];
+			if (groupIdentifiers.length > 0) {
+				const featureUuids = await getClassFeaturesByGroup(groupIdentifiers, null);
+				for (const featureUuid of featureUuids) {
+					const featureDoc = (await fromUuid(featureUuid)) as NimbleFeatureItem | null;
+					if (featureDoc) {
+						// Defensive: character creation should only embed level-1 (level=null) features.
+						// If a higher-level feature leaks into the list, skip it here.
+						const featureLevel = (featureDoc.system as { level?: number | null }).level ?? null;
+						if (featureLevel !== null && featureLevel > 1) continue;
+
+						featureDoc._stats.compendiumSource = featureUuid;
+						originDocuments.push(featureDoc);
+					}
+				}
+			}
 		}
 
 		if (ancestryDocument) {
-			ancestryDocument._stats.compendiumSource = ancestry.uuid;
+			ancestryDocument._stats.compendiumSource = ancestryUuid;
 			originDocuments.push(ancestryDocument);
 		}
 
-		actor?.createEmbeddedDocuments('Item', originDocuments);
+		// Await the createEmbeddedDocuments call so rules can process properly
+		await actor?.createEmbeddedDocuments('Item', originDocuments);
+		await this.applyAndGrantSpellSelections(actor, results);
 
 		await actor?.update({
 			system: {
@@ -108,6 +183,67 @@ export default class CharacterCreationDialog extends SvelteApplicationMixin(Appl
 		});
 
 		return super.close();
+	}
+
+	/**
+	 * Apply selections from the character creation dialog to embedded rule objects and grant spells.
+	 *
+	 * Why this exists:
+	 * - During `createEmbeddedDocuments`, `NimbleBaseItem.createDocuments` grants spells from rules in `preCreate`.
+	 * - Mutating `item.system.rules` on a compendium document does not reliably affect the `_source` that is used for creation.
+	 * - So we apply choices post-creation by calling the rule helper methods, which also grant the correct spells and prevent duplicates.
+	 */
+	private async applyAndGrantSpellSelections(
+		actor: NimbleCharacter | null,
+		results: CharacterCreationSubmitResults,
+	): Promise<void> {
+		if (!actor) return;
+
+		type SelectSpellSchoolRuleInstance = {
+			type: 'selectSpellSchool';
+			id: string;
+			setChosenSchools: (schools: string[]) => Promise<void>;
+		};
+
+		type SelectSpellRuleInstance = {
+			type: 'selectSpell';
+			id: string;
+			addChosenSpells: (spellUuids: string[]) => Promise<void>;
+		};
+
+		type RuleInstance =
+			| SelectSpellSchoolRuleInstance
+			| SelectSpellRuleInstance
+			| { type: string; id: string };
+
+		type ItemWithRules = {
+			rules: Map<string, RuleInstance>;
+		};
+
+		const spellSchoolSelections = results.spellSchoolSelections ?? {};
+		const spellSelections = results.spellSelections ?? {};
+
+		for (const item of actor.items) {
+			const rulesMap = (item as { rules?: ItemWithRules['rules'] }).rules;
+			if (!(rulesMap instanceof Map)) continue;
+
+			for (const rule of rulesMap.values()) {
+				if (rule.type === 'selectSpellSchool' && 'setChosenSchools' in rule) {
+					const schools = spellSchoolSelections[rule.id] ?? [];
+					if (schools.length > 0) {
+						await rule.setChosenSchools(schools);
+					}
+				}
+
+				if (rule.type === 'selectSpell' && 'addChosenSpells' in rule) {
+					const selections = spellSelections[rule.id] ?? [];
+					const uuids = selections.map((s) => s.uuid);
+					if (uuids.length > 0) {
+						await rule.addChosenSpells(uuids);
+					}
+				}
+			}
+		}
 	}
 
 	async close(
@@ -147,10 +283,18 @@ export default class CharacterCreationDialog extends SvelteApplicationMixin(Appl
 	prepareArrayOptions() {
 		const { statArrays, statArrayModifiers } = CONFIG.NIMBLE;
 
-		return Object.entries(statArrayModifiers).reduce((arrays: any[], [key, array]) => {
+		interface StatArrayOption {
+			key: string;
+			array: number[];
+			name: string;
+		}
+
+		return Object.entries(statArrayModifiers).reduce<StatArrayOption[]>((arrays, [key, array]) => {
+			const values = Array.isArray(array) ? array : [];
+
 			arrays.push({
 				key,
-				array,
+				array: values,
 				name: statArrays[key] as string,
 			});
 

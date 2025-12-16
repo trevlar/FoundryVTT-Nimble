@@ -8,6 +8,8 @@
 	import AbilityScoreIncrease from './components/levelUpHelper/AbilityScoreIncrease.svelte';
 	import HitPointSelection from './components/levelUpHelper/HitPointSelection.svelte';
 	import SkillPointAssignment from './components/levelUpHelper/SkillPointAssignment.svelte';
+	import SpellChoiceSelection from './components/levelUpHelper/SpellChoiceSelection.svelte';
+	import SpellUnlockNotification from './components/levelUpHelper/SpellUnlockNotification.svelte';
 	import SubclassSelection from './components/levelUpHelper/SubclassSelection.svelte';
 
 	const { forms, levelUpDialog } = CONFIG.NIMBLE;
@@ -18,6 +20,7 @@
 			selectedSubclass,
 			skillPointChanges,
 			takeAverageHp: hitPointRollSelection === 'average',
+			spellChoiceSelections,
 		});
 	}
 
@@ -81,6 +84,8 @@
 
 	let hasStatIncrease = $state(false);
 	let skillPointsOverMax = $state(false);
+	let spellChoiceSelections: Record<string, unknown[]> = $state({});
+	let spellChoiceComponent: SpellChoiceSelection;
 
 	let skillPointChangesAssigned = $derived.by(() => {
 		return Object.values(skillPointChanges).reduce((acc, change) => acc + (change ?? 0), 0) === 1;
@@ -111,11 +116,14 @@
 				? selectedAbilityScores?.length === 2
 				: selectedAbilityScores) || !hasStatIncrease;
 
+		const spellChoicesComplete = spellChoiceComponent?.isComplete() ?? true;
+
 		return (
 			abilityScoreComplete &&
 			skillPointChangesAssigned &&
 			!overMax &&
-			(selectedSubclass || !hasSubclassSelection)
+			(selectedSubclass || !hasSubclassSelection) &&
+			spellChoicesComplete
 		);
 	});
 </script>
@@ -147,6 +155,15 @@
 	{#if levelingTo === 3 && subclasses.length}
 		<SubclassSelection {subclasses} bind:selectedSubclass />
 	{/if}
+
+	<SpellUnlockNotification {document} {levelingTo} />
+
+	<SpellChoiceSelection
+		{document}
+		{levelingTo}
+		bind:this={spellChoiceComponent}
+		bind:spellChoiceSelections
+	/>
 </section>
 
 <footer class="nimble-sheet__footer">

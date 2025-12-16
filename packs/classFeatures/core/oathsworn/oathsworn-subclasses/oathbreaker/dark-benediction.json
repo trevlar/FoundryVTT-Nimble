@@ -6,7 +6,16 @@
 	"system": {
 		"macro": "",
 		"identifier": "",
-		"rules": [],
+		"rules": [
+			{
+				"id": "dark-benediction-necrotic-spells",
+				"type": "grantSpells",
+				"spellUuids": [
+					"Compendium.nimble.nimble-spells.Item.rGQGuB0VGW9IgVrE",
+					"Compendium.nimble.nimble-spells.Item.vPO6fDAB3sSLIqPY"
+				]
+			}
+		],
 		"activation": {
 			"acquireTargetsFromTemplate": false,
 			"cost": {
@@ -48,5 +57,5 @@
 		"modifiedTime": 1762130685669,
 		"lastModifiedBy": "zvcmZ9cAKxekqF5X"
 	},
-	"_id": "QiBDdnMisHdEemWv"
+	"_id": "klmGz6uPhabVYeui"
 }
