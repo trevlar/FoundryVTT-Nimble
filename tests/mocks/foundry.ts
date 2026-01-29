@@ -81,6 +81,54 @@ export const globalFoundryMocks = {
 	localize: (key: string) => key,
 };
 
+// Mock Die class for dice terms (defined early so it can be used by Roll mock)
+class MockDieEarly {
+	faces?: number;
+	number?: number;
+	results: any[] = [];
+	modifiers: string[] = [];
+	_evaluated: boolean = false;
+
+	constructor(termData: any) {
+		Object.assign(this, termData);
+		if (!this.modifiers) this.modifiers = [];
+	}
+
+	async evaluate() {
+		this._evaluated = true;
+		// If results are already set (e.g., by primaryDieValue), keep them
+		if (this.results.length === 0 && this.faces) {
+			// Simulate rolling
+			this.results = [{ result: Math.ceil(Math.random() * this.faces), active: true }];
+		}
+		return this;
+	}
+}
+
+/**
+ * Parse a simple dice formula into terms
+ * Handles formulas like "1d20", "2d6", "1d6+2", etc.
+ */
+function parseFormulaToTermsEarly(formula: string): any[] {
+	const terms: any[] = [];
+	// Simple regex to match dice expressions like "1d20", "2d6"
+	const diceRegex = /(\d+)d(\d+)/g;
+	let match;
+	let lastIndex = 0;
+
+	while ((match = diceRegex.exec(formula)) !== null) {
+		terms.push(
+			new MockDieEarly({
+				number: parseInt(match[1], 10),
+				faces: parseInt(match[2], 10),
+			}),
+		);
+		lastIndex = diceRegex.lastIndex;
+	}
+
+	return terms;
+}
+
 /**
  * Creates a trackable Roll mock that can be used with vi.fn() to track constructor calls
  * This is useful for tests that need to verify Roll constructor invocations
@@ -101,7 +149,7 @@ export function createTrackableRollMock() {
 			this.formula = formula;
 			this.data = data ?? {};
 			this.options = options ?? {};
-			this.terms = [];
+			this.terms = parseFormulaToTermsEarly(formula);
 			this._formula = formula;
 		}
 
@@ -142,10 +190,20 @@ export function createTrackableRollMock() {
 			return roll;
 		}
 
-		async evaluate() {
+		async _evaluate() {
 			this._evaluated = true;
 			this._total ??= 0;
+			// Evaluate each term
+			for (const term of this.terms) {
+				if (typeof (term as any).evaluate === 'function') {
+					await (term as any).evaluate();
+				}
+			}
 			return this;
+		}
+
+		async evaluate() {
+			return this._evaluate();
 		}
 
 		get total(): number | undefined {
@@ -237,20 +295,32 @@ const { MockRoll: trackableRollMock, MockRollConstructor: trackableRollConstruct
 // Export the constructor so tests can reset the mock if needed
 export const MockRollConstructor = trackableRollConstructor;
 
+// Mock OperatorTerm class
+class MockOperatorTerm {
+	operator: string;
+
+	constructor(termData: { operator: string }) {
+		this.operator = termData.operator;
+	}
+}
+
+// Mock NumericTerm class
+class MockNumericTerm {
+	number: number;
+
+	constructor(termData: { number: number }) {
+		this.number = termData.number;
+	}
+}
+
 // Foundry API object mocks
 export const foundryApiMocks = {
 	dice: {
 		Roll: trackableRollMock,
 		terms: {
-			Die: class Die {
-				faces?: number;
-				number?: number;
-				results: any[] = [];
-
-				constructor(termData: any) {
-					Object.assign(this, termData);
-				}
-			},
+			Die: MockDieEarly,
+			OperatorTerm: MockOperatorTerm,
+			NumericTerm: MockNumericTerm,
 		},
 	},
 	utils: {

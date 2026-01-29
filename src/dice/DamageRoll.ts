@@ -83,7 +83,7 @@ class DamageRoll extends foundry.dice.Roll<DamageRoll.Data> {
 	/** ------------------------------------------------------ */
 	_preProcessFormula(_formula: string, _data: DamageRoll.Data, options: DamageRoll.Options) {
 		// Separate out the primary die
-		if (options.canCrit) {
+		if (options.canCrit || options.canMiss) {
 			const { rollMode = 0 } = options;
 			const firstDieTerm = this.terms.find((t) => t instanceof Terms.Die);
 
@@ -111,8 +111,8 @@ class DamageRoll extends foundry.dice.Roll<DamageRoll.Data> {
 					if (rollMode > 0) primaryTerm.modifiers.push('kh');
 					else if (rollMode < 0) primaryTerm.modifiers.push('kl');
 
-					// Add Explosion after adv/div has been calculated
-					primaryTerm.modifiers.push('x');
+					// Add Explosion after adv/dis has been calculated (only if canCrit)
+					if (options.canCrit) primaryTerm.modifiers.push('x');
 
 					if (options.primaryDieValue) {
 						primaryTerm.results = [{ result: options.primaryDieValue, active: true }];
@@ -152,8 +152,8 @@ class DamageRoll extends foundry.dice.Roll<DamageRoll.Data> {
 					if (rollMode > 0) primaryTerm.modifiers.push('kh');
 					else if (rollMode < 0) primaryTerm.modifiers.push('kl');
 
-					// Add Explosion for critical after adv/dis
-					primaryTerm.modifiers.push('x');
+					// Add Explosion for critical after adv/dis (only if canCrit)
+					if (options.canCrit) primaryTerm.modifiers.push('x');
 
 					if (options.primaryDieValue) {
 						primaryTerm.results = [{ result: options.primaryDieValue, active: true }];

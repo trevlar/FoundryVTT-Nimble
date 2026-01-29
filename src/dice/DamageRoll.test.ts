@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DamageRoll } from './DamageRoll.js';
+import { PrimaryDie } from './terms/PrimaryDie.js';
 
 describe('DamageRoll.fromData', () => {
 	beforeEach(() => {
@@ -548,5 +549,239 @@ describe('DamageRoll.fromData', () => {
 			expect(roll.data).toEqual({ level: 3 });
 			expect(roll.options).toEqual({ canCrit: true, canMiss: true, rollMode: 1 });
 		});
+	});
+});
+
+describe('DamageRoll constructor', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	describe('canCrit and canMiss options', () => {
+		it('should set isCritical to false when canCrit is false', () => {
+			const roll = new DamageRoll(
+				'1d6',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.isCritical).toBe(false);
+		});
+
+		it('should set isMiss to false when canMiss is false', () => {
+			const roll = new DamageRoll(
+				'1d6',
+				{},
+				{ canCrit: true, canMiss: false, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.isMiss).toBe(false);
+		});
+
+		it('should leave isCritical undefined when canCrit is true', () => {
+			const roll = new DamageRoll(
+				'1d6',
+				{},
+				{ canCrit: true, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.isCritical).toBeUndefined();
+		});
+
+		it('should leave isMiss undefined when canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d6',
+				{},
+				{ canCrit: true, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.isMiss).toBeUndefined();
+		});
+
+		it('should default canCrit to true when not specified', () => {
+			const roll = new DamageRoll('1d6', {}, {
+				canMiss: true,
+				rollMode: 0,
+				primaryDieValue: 0,
+				primaryDieModifier: 0,
+			} as DamageRoll.Options);
+
+			expect(roll.options.canCrit).toBe(true);
+		});
+
+		it('should default canMiss to true when not specified', () => {
+			const roll = new DamageRoll('1d6', {}, {
+				canCrit: true,
+				rollMode: 0,
+				primaryDieValue: 0,
+				primaryDieModifier: 0,
+			} as DamageRoll.Options);
+
+			expect(roll.options.canMiss).toBe(true);
+		});
+	});
+
+	describe('PrimaryDie creation (_preProcessFormula)', () => {
+		it('should create PrimaryDie when canCrit is true and canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: true, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeInstanceOf(PrimaryDie);
+		});
+
+		it('should create PrimaryDie when canCrit is true and canMiss is false', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: true, canMiss: false, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeInstanceOf(PrimaryDie);
+		});
+
+		it('should create PrimaryDie when canCrit is false and canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeInstanceOf(PrimaryDie);
+		});
+
+		it('should NOT create PrimaryDie when both canCrit and canMiss are false', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: false, canMiss: false, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeUndefined();
+		});
+
+		it('should add explosion modifier (x) when canCrit is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: true, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeDefined();
+			expect(roll.primaryDie!.modifiers).toContain('x');
+		});
+
+		it('should NOT add explosion modifier (x) when canCrit is false but canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeDefined();
+			expect(roll.primaryDie!.modifiers).not.toContain('x');
+		});
+
+		it('should handle multi-die formulas (2d6) with canCrit true', () => {
+			const roll = new DamageRoll(
+				'2d6',
+				{},
+				{ canCrit: true, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeInstanceOf(PrimaryDie);
+			expect(roll.primaryDie!.modifiers).toContain('x');
+		});
+
+		it('should handle multi-die formulas (2d6) with canCrit false and canMiss true', () => {
+			const roll = new DamageRoll(
+				'2d6',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeInstanceOf(PrimaryDie);
+			expect(roll.primaryDie!.modifiers).not.toContain('x');
+		});
+	});
+
+	describe('rollMode handling', () => {
+		it('should add kh modifier for advantage (rollMode > 0) when canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: 1, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeDefined();
+			expect(roll.primaryDie!.modifiers).toContain('kh');
+		});
+
+		it('should add kl modifier for disadvantage (rollMode < 0) when canMiss is true', () => {
+			const roll = new DamageRoll(
+				'1d20',
+				{},
+				{ canCrit: false, canMiss: true, rollMode: -1, primaryDieValue: 0, primaryDieModifier: 0 },
+			);
+
+			expect(roll.primaryDie).toBeDefined();
+			expect(roll.primaryDie!.modifiers).toContain('kl');
+		});
+	});
+});
+
+describe('DamageRoll._evaluate', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('should set isMiss to true when canMiss is true and primary die rolls 1', async () => {
+		const roll = new DamageRoll(
+			'1d20',
+			{},
+			{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 1, primaryDieModifier: 0 },
+		);
+
+		await roll.evaluate();
+
+		expect(roll.isMiss).toBe(true);
+	});
+
+	it('should keep isMiss as false when canMiss is false even if primary die rolls 1', async () => {
+		const roll = new DamageRoll(
+			'1d20',
+			{},
+			{ canCrit: true, canMiss: false, rollMode: 0, primaryDieValue: 1, primaryDieModifier: 0 },
+		);
+
+		await roll.evaluate();
+
+		expect(roll.isMiss).toBe(false);
+	});
+
+	it('should set isMiss to false when canMiss is true and primary die does not roll 1', async () => {
+		const roll = new DamageRoll(
+			'1d20',
+			{},
+			{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 10, primaryDieModifier: 0 },
+		);
+
+		await roll.evaluate();
+
+		expect(roll.isMiss).toBe(false);
+	});
+
+	it('should keep isCritical as false when canCrit is false even if primary die would explode', async () => {
+		const roll = new DamageRoll(
+			'1d20',
+			{},
+			{ canCrit: false, canMiss: true, rollMode: 0, primaryDieValue: 20, primaryDieModifier: 0 },
+		);
+
+		await roll.evaluate();
+
+		expect(roll.isCritical).toBe(false);
 	});
 });
