@@ -1306,7 +1306,7 @@
 		},
 		"skillsConfig": {
 			"skill": "Skill",
-			"abilityModifier": "Abil. Mod",
+			"abilityModifier": "Stat Score",
 			"skillBonus": "Bonus",
 			"skillPoints": "Points",
 			"total": "Total",
